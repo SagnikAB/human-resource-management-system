@@ -1,0 +1,1 @@
+import { Sidebar } from './Sidebar';import { Topbar } from './Topbar';export function PageWrapper({children}:{children:React.ReactNode}){return <div className="min-h-screen bg-hero-grid [background-size:32px_32px]"><div className="flex"><Sidebar/><main className="min-w-0 flex-1"><Topbar/><div className="p-4 md:p-8">{children}</div></main></div></div>}

@@ -1,0 +1,1 @@
+export function LeaveBalance(){return <div className="grid gap-4 sm:grid-cols-3">{[['Paid',12],['Sick',6],['Unpaid','∞']].map(([t,v])=><div key={t} className="glass rounded-3xl p-5"><p className="text-sm text-muted">{t} leave</p><p className="mt-2 text-3xl font-black">{v}</p></div>)}</div>}

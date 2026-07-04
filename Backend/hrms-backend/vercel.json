@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "builds": [
+    {"src": "hrms/wsgi.py", "use": "@vercel/python"}
+  ],
+  "routes": [
+    {"src": "/(.*)", "dest": "hrms/wsgi.py"}
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "hrms.settings.production"
+  }
+}

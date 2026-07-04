@@ -1,0 +1,1 @@
+import { useQuery } from '@tanstack/react-query';import { api, withFallback } from '@/lib/api';import { employees } from '@/lib/constants';export function useEmployees(){return useQuery({queryKey:['employees'],queryFn:()=>withFallback(api.get('/employees'),employees)})}

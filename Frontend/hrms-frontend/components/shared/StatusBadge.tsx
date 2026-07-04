@@ -1,0 +1,1 @@
+import { cn } from '@/lib/utils';export function StatusBadge({status}:{status:string}){const key=status.toLowerCase().replace(' ','-');return <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-white/5',`status-${key}`)}>{status}</span>}
