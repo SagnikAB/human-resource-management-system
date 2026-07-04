@@ -1,4 +1,4 @@
-const storageKey = "hrms-static-demo-v1";
+const storageKey = "hrms-static-demo-v2";
 
 const seed = {
   users: [
@@ -93,6 +93,8 @@ let state = loadState();
 let view = "dashboard";
 let authMode = "signin";
 let selectedEmployeeId = "e-alex";
+let employeeSearch = "";
+let sidebarOpen = false;
 
 function loadState() {
   const saved = localStorage.getItem(storageKey);
@@ -116,7 +118,25 @@ function money(value) {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function currentMonthLabel() {
+  return new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+}
+
+function resetDemo() {
+  state = structuredClone(seed);
+  view = "dashboard";
+  employeeSearch = "";
+  sidebarOpen = false;
+  saveState();
+  toast("Demo data reset to defaults.");
+  render();
 }
 
 function currentUser() {
@@ -185,7 +205,7 @@ function authScreen() {
           <div class="metric"><span class="muted">Payroll Records</span><strong>${state.payroll.length}</strong></div>
         </div>
         <div class="wireframe-card">
-          <img src="wireframe-reference.jpeg" alt="HRMS wireframe reference" />
+          <img src="wireframe-reference.svg" alt="HRMS wireframe reference" />
         </div>
       </section>
     </main>
@@ -200,7 +220,10 @@ function signinFields() {
     </div>
     <div class="form-row">
       <label for="password">Password</label>
-      <input id="password" name="password" type="password" value="AdminPass123!" required />
+      <div class="input-group">
+        <input id="password" name="password" type="password" value="AdminPass123!" required />
+        <button type="button" class="ghost input-addon" data-toggle-password="password" aria-label="Show password">Show</button>
+      </div>
     </div>
     <p class="notice">Admin: admin@company.test / AdminPass123!<br />Employee: alex.employee@company.test / EmployeePass123!</p>
   `;
@@ -250,7 +273,9 @@ function appShell(user) {
 
   return `
     <main class="shell">
-      <aside class="sidebar">
+      <button class="menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation">${sidebarOpen ? "✕" : "☰"}</button>
+      ${sidebarOpen ? `<button class="sidebar-backdrop" data-action="toggle-sidebar" aria-label="Close navigation"></button>` : ""}
+      <aside class="sidebar ${sidebarOpen ? "open" : ""}">
         <div class="profile-chip">
           <div class="avatar">${initials(employee?.name ?? "HR")}</div>
           <div>
@@ -261,7 +286,10 @@ function appShell(user) {
         <nav class="nav">
           ${nav.map((item) => `<button class="${view === item ? "active" : ""}" data-view="${item}">${label(item)}</button>`).join("")}
         </nav>
-        <button class="ghost" data-action="logout">Log Out</button>
+        <div class="sidebar-footer">
+          <button class="ghost" data-action="reset-demo">Reset Demo</button>
+          <button class="ghost" data-action="logout">Log Out</button>
+        </div>
       </aside>
       <section class="main">
         ${contentFor(view, user)}
@@ -341,23 +369,42 @@ function dashboardView(user) {
   `;
 }
 
+function filteredEmployees() {
+  const query = employeeSearch.trim().toLowerCase();
+  if (!query) return state.employees;
+  return state.employees.filter(
+    (employee) =>
+      employee.name.toLowerCase().includes(query) ||
+      employee.code.toLowerCase().includes(query) ||
+      employee.department.toLowerCase().includes(query) ||
+      employee.email.toLowerCase().includes(query)
+  );
+}
+
 function employeesView() {
+  const rows = filteredEmployees();
   return `
-    ${pageHeader("Employee Directory", "Switch between employees, inspect profiles, and manage staff records.")}
+    ${pageHeader("Employee Directory", "Search, switch between employees, and manage staff records.")}
     <section class="grid content-grid">
       <div class="panel">
-        <div class="panel-head"><h2>All Employees</h2><span class="pill">${state.employees.length} records</span></div>
+        <div class="panel-head">
+          <h2>All Employees</h2>
+          <span class="pill">${rows.length} shown</span>
+        </div>
+        <div class="form-row search-row">
+          <input id="employeeSearch" type="search" placeholder="Search by name, ID, department, or email…" value="${employeeSearch}" />
+        </div>
         <div class="list">
-          ${state.employees.map((employee) => `
-            <article class="card employee-card">
+          ${rows.length ? rows.map((employee) => `
+            <article class="card employee-card ${employee.id === selectedEmployeeId ? "selected" : ""}">
               <div class="avatar">${initials(employee.name)}</div>
               <div>
                 <strong>${employee.name}</strong>
-                <div class="muted">${employee.code} - ${employee.department} - ${employee.designation}</div>
+                <div class="muted">${employee.code} · ${employee.department} · ${employee.designation}</div>
               </div>
-              <button data-select-employee="${employee.id}">Open</button>
+              <button data-select-employee="${employee.id}">${employee.id === selectedEmployeeId ? "Selected" : "Open"}</button>
             </article>
-          `).join("")}
+          `).join("") : `<div class="empty">No employees match your search.</div>`}
         </div>
       </div>
       ${profileView(state.employees.find((employee) => employee.id === selectedEmployeeId), true)}
@@ -413,7 +460,7 @@ function attendanceView(user) {
         </table>
       </div>
       <div class="panel">
-        <div class="panel-head"><h2>Monthly Markers</h2><span class="pill">July 2026</span></div>
+        <div class="panel-head"><h2>Monthly Markers</h2><span class="pill">${currentMonthLabel()}</span></div>
         <div class="calendar">${calendarDays(user)}</div>
       </div>
     </section>
@@ -422,12 +469,21 @@ function attendanceView(user) {
 
 function calendarDays(user) {
   const employeeId = isHr(user) ? selectedEmployeeId : user.employeeId;
-  return Array.from({ length: 31 }, (_, index) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+  const weekdayOffset = new Date(year, now.getMonth(), 1).getDay();
+  const blanks = Array.from({ length: weekdayOffset }, () => `<div class="day blank"></div>`).join("");
+  const days = Array.from({ length: daysInMonth }, (_, index) => {
     const day = String(index + 1).padStart(2, "0");
-    const row = state.attendance.find((item) => item.employeeId === employeeId && item.date === `2026-07-${day}`);
+    const dateKey = `${year}-${month}-${day}`;
+    const row = state.attendance.find((item) => item.employeeId === employeeId && item.date === dateKey);
     const className = row?.status === "Present" ? "present" : row?.status === "Leave" ? "leave" : row?.status === "Absent" ? "absent" : "";
-    return `<div class="day ${className}">${index + 1}</div>`;
+    const isToday = dateKey === today() ? " today" : "";
+    return `<div class="day ${className}${isToday}" title="${dateKey}">${index + 1}</div>`;
   }).join("");
+  return blanks + days;
 }
 
 function leaveView(user) {
@@ -525,7 +581,7 @@ function wireframeView() {
   return `
     ${pageHeader("Wireframe Reference", "The supplied concept image is included in the deployable site.")}
     <div class="wireframe-card">
-      <img src="wireframe-reference.jpeg" alt="Original HRMS wireframe reference" />
+      <img src="wireframe-reference.svg" alt="Original HRMS wireframe reference" />
     </div>
   `;
 }
@@ -541,8 +597,29 @@ function bindEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
       view = button.dataset.view;
+      sidebarOpen = false;
       render();
     });
+  });
+
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = qs(`#${button.dataset.togglePassword}`);
+      if (!input) return;
+      const hidden = input.type === "password";
+      input.type = hidden ? "text" : "password";
+      button.textContent = hidden ? "Hide" : "Show";
+    });
+  });
+
+  qs("#employeeSearch")?.addEventListener("input", (event) => {
+    employeeSearch = event.currentTarget.value;
+    render();
+    const input = qs("#employeeSearch");
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
   });
 
   document.querySelectorAll("[data-select-employee]").forEach((button) => {
@@ -567,8 +644,22 @@ function bindEvents() {
 
   qs("[data-action='logout']")?.addEventListener("click", () => {
     state.currentUserId = null;
+    sidebarOpen = false;
     saveState();
     render();
+  });
+
+  qs("[data-action='reset-demo']")?.addEventListener("click", () => {
+    if (window.confirm("Reset all demo data to defaults? This clears local changes.")) {
+      resetDemo();
+    }
+  });
+
+  document.querySelectorAll("[data-action='toggle-sidebar']").forEach((button) => {
+    button.addEventListener("click", () => {
+      sidebarOpen = !sidebarOpen;
+      render();
+    });
   });
 
   qs("[data-action='checkin']")?.addEventListener("click", () => {

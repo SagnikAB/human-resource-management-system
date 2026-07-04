@@ -1,38 +1,37 @@
 # Human Resource Management System
 
-This repository contains a GitHub Pages-ready HRMS website and a Django REST backend.
+A full-stack HRMS with a **GitHub Pages demo** and a **Django REST API** backend.
 
-## Static Website
+**Live demo:** [https://sagnikab.github.io/human-resource-management-system/](https://sagnikab.github.io/human-resource-management-system/)
 
-The static website is deployed from the repository root:
+## Features
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `wireframe-reference.jpeg`
+- Role-based dashboards for **Admin/HR** and **Employees**
+- Employee directory with search
+- Attendance check-in/out and monthly calendar
+- Leave requests with HR approval workflow
+- Payroll and salary structure management
+- Responsive layout with mobile navigation
+- Demo data persisted in browser `localStorage`
 
-Demo accounts:
+## Demo Accounts
 
-- Admin: `admin@company.test` / `AdminPass123!`
-- Employee: `alex.employee@company.test` / `EmployeePass123!`
+| Role     | Email                         | Password           |
+|----------|-------------------------------|--------------------|
+| Admin    | `admin@company.test`          | `AdminPass123!`    |
+| Employee | `alex.employee@company.test`  | `EmployeePass123!` |
 
-The GitHub Pages prototype stores demo interactions in browser `localStorage`, so profile edits, attendance check-ins, leave requests, and salary edits persist in the same browser.
+Use **Reset Demo** in the sidebar to restore seed data after experimenting.
 
-## GitHub Pages Deployment
+## Static Website (GitHub Pages)
 
-1. Push this repository to GitHub.
-2. Open repository `Settings`.
-3. Go to `Pages`.
-4. Use either:
-   - Source: `GitHub Actions`, or
-   - Source: `Deploy from a branch`, branch `main`, folder `/ (root)`.
-5. Save.
+The static site is deployed automatically via GitHub Actions on every push to `main`.
 
-The Pages URL will be:
+Manual setup (if needed):
 
-```text
-https://sagnikab.github.io/human-resource-management-system/
-```
+1. Open repository **Settings → Pages**
+2. Set **Source** to **GitHub Actions**
+3. Push to `main` — the workflow in `.github/workflows/pages.yml` handles the rest
 
 ## Django Backend
 
@@ -51,48 +50,46 @@ python manage.py seed_demo
 python manage.py runserver
 ```
 
-The API runs at:
-
-```text
-http://127.0.0.1:8000/api/
-```
-
-### Demo Backend Accounts
-
-- Admin: `admin@company.test` / `AdminPass123!`
-- Employee: `alex.employee@company.test` / `EmployeePass123!`
+API base URL: `http://127.0.0.1:8000/api/`
 
 ### Main API Routes
 
-- `POST /api/auth/signup/`
-- `POST /api/auth/signin/`
-- `GET /api/employees/`
-- `GET /api/employees/me/`
-- `POST /api/attendance/check-in/`
-- `POST /api/attendance/check-out/`
-- `GET /api/leave-requests/`
-- `PATCH /api/leave-requests/:id/decision/`
-- `GET /api/payroll/`
-- `POST /api/salary-structures/`
+| Method | Route |
+|--------|-------|
+| POST | `/api/auth/signup/` |
+| POST | `/api/auth/signin/` |
+| GET | `/api/employees/` |
+| GET/PATCH | `/api/employees/me/` |
+| POST | `/api/attendance/check-in/` |
+| POST | `/api/attendance/check-out/` |
+| GET | `/api/leave-requests/` |
+| PATCH | `/api/leave-requests/:id/decision/` |
+| GET | `/api/payroll/` |
+| POST | `/api/salary-structures/` |
 
-Protected endpoints use DRF token authentication:
+Protected endpoints use token authentication:
 
 ```text
 Authorization: Token <token>
 ```
 
-## Backend Deployment
+## Backend Deployment (Render)
 
-`render.yaml` is included for deploying the Django API to Render.
+`render.yaml` is included for deploying the Django API to [Render](https://render.com).
 
-On Render:
+1. Create a new **Blueprint** and connect this GitHub repo
+2. Render detects `render.yaml` automatically
+3. Add a PostgreSQL database and set `DATABASE_URL` for production persistence
+4. After deploy, run `python manage.py seed_demo`
 
-1. Create a new Blueprint.
-2. Connect this GitHub repo.
-3. Render will detect `render.yaml`.
-4. Add a PostgreSQL database and set `DATABASE_URL` if you want production persistence.
-5. After deploy, run:
+## Repository Structure
 
-```bash
-python manage.py seed_demo
+```text
+├── index.html          # Static site entry
+├── app.js              # Demo SPA logic
+├── styles.css          # UI styles
+├── wireframe-reference.svg
+├── backend/            # Django REST API
+├── render.yaml         # Render deployment config
+└── .github/workflows/  # GitHub Pages CI
 ```
